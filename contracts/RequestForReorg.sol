@@ -53,7 +53,7 @@ contract RequestForReorg {
         require(requests[requester].claimant == msg.sender, "Must match claimant");
 
         uint reward = requests[requester].reward;
-        resetRequest(requester);
+        delete requests[requester];
 
         (bool success,) = (msg.sender).call{value: reward}("");
         require(success, "Low level transfer error");
@@ -65,7 +65,7 @@ contract RequestForReorg {
         require(block.timestamp < requests[msg.sender].expiryBlock, "Must be before expiryBlock");
         require(requests[msg.sender].claimant != address(0), "Must be claimed");
 
-        resetRequest(msg.sender);
+        delete requests[msg.sender];
     }
 
     /// @notice Withdraws the reward amount if no miners claim the reward by reorg-ing
@@ -75,20 +75,10 @@ contract RequestForReorg {
         require(requests[msg.sender].claimant == address(0), "Reward claimed");
 
         uint reward = uint(requests[msg.sender].reward);
-
-        resetRequest(msg.sender);
+        delete requests[msg.sender];
 
         // Withdrawing the original reward amount
         (bool success,) = (msg.sender).call{value: reward}("");
         require(success, "Low level transfer error");
-    }
-
-    /// @notice Resets the request object
-    function resetRequest(address requester) private {
-        // Reset all values
-        requests[requester].claimant = address(0);
-        requests[requester].executeBlock = 0;
-        requests[requester].expiryBlock = 0;
-        requests[requester].reward = 0;
     }
 }
