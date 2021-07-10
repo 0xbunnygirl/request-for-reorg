@@ -21,7 +21,6 @@ contract RequestForReorg {
     /// @param expiryBlock is the block at which the request expires
     function request(uint56 executeBlock, uint56 expiryBlock) external payable {
         require(requests[msg.sender].expiryBlock == 0, "Existing request");
-        require(executeBlock < block.number, "executeBlock must be in the past");
         require(expiryBlock > executeBlock, "expiryBlock must be after executeBlock");
 
         // Overflow checks
