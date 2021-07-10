@@ -6,10 +6,10 @@ contract RequestForReorg {
         // Address of the miner claiming the reward
         address claimant;
         // The block at which the `reorg` function has to be called
-        uint56 executeBlock;
+        uint48 executeBlock;
         // The expiry of the request
         // If no reorgs are made, the requester can withdraw their reward
-        uint56 expiryBlock;
+        uint48 expiryBlock;
         // Amount of reward in Ether attached to the reorg request
         uint128 reward;
     }
@@ -19,7 +19,7 @@ contract RequestForReorg {
     /// @notice Creates a request to reorg the blockchain
     /// @param executeBlock is the block at which the reorg function has to be called
     /// @param expiryBlock is the block at which the request expires
-    function request(uint56 executeBlock, uint56 expiryBlock) external payable {
+    function request(uint48 executeBlock, uint48 expiryBlock) external payable {
         require(requests[msg.sender].expiryBlock == 0, "Existing request");
         require(expiryBlock > executeBlock, "expiryBlock must be after executeBlock");
 
@@ -40,7 +40,7 @@ contract RequestForReorg {
     function reorg(address requester) external {
         require(requests[requester].expiryBlock != 0, "Request does not exist");
         require(block.coinbase == msg.sender, "Must be miner");
-        require(uint56(block.number) == requests[requester].executeBlock, "Must be executed at executeBlock");
+        require(uint48(block.number) == requests[requester].executeBlock, "Must be executed at executeBlock");
 
         // Updating the claim information
         requests[requester].claimant = msg.sender;
@@ -71,7 +71,7 @@ contract RequestForReorg {
     /// @notice Withdraws the reward amount if no miners claim the reward by reorg-ing
     function withdraw() external {
         require(requests[msg.sender].expiryBlock != 0, "Request does not exist");
-        require(uint56(block.number) > requests[msg.sender].expiryBlock, "Must be after expiryBlock");
+        require(uint48(block.number) > requests[msg.sender].expiryBlock, "Must be after expiryBlock");
         require(requests[msg.sender].claimant == address(0), "Reward claimed");
 
         uint reward = uint(requests[msg.sender].reward);
