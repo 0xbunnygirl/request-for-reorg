@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.6;
 
 contract RequestForReorg {
-    event Request(
+    event CreateRequest(
          uint64 executeBlock,
         uint64 expiryBlock,
         uint128 value,
@@ -19,7 +19,7 @@ contract RequestForReorg {
     }
     mapping(address => Request) public requests;
 
-    function request(uint executeBlock, uint expiryBlock) payable {
+    function request(uint executeBlock, uint expiryBlock) external payable {
         require(requests[msg.sender].expiryBlock == 0, "Existing request");
         require(block.number > executeBlock, "executeBlock must be in the past");
         require(block.number < expiryBlock, "expiryBlock must be in the future");
@@ -27,7 +27,7 @@ contract RequestForReorg {
         // Overflow checks
         require(executeBlock < type(uint64).max, "Overflow executeBlock");
         require(expiryBlock < type(uint64).max, "Overflow expiryBlock");
-        require(value < type(uint128).max, "Overflow value");
+        require(msg.value < type(uint128).max, "Overflow value");
 
         requests[msg.sender] = Request({
             executeBlock: uint64(executeBlock),
@@ -36,16 +36,18 @@ contract RequestForReorg {
         });
     }
 
-    function reorg(address requester) {
-        require(requests[msg.sender].expiryBlock != 0, "Request does not exist");
+    function reorg(address requester) external {
+        require(requests[requester].expiryBlock != 0, "Request does not exist");
         require(block.coinbase == msg.sender, "Must be miner");
-        require(block.number == requests[requester.executeBlock], "Must be executed at executeBlock");
-        (msg.sender).call{value: requests[requester].value}("");
+        require(uint64(block.number) == requests[requester].executeBlock, "Must be executed at executeBlock");
+        (bool success,) = (msg.sender).call{value: requests[requester].value}("");
+        require(success, "Low level transfer error");
     }
 
-    function withdraw() {
+    function withdraw() external {
         require(requests[msg.sender].expiryBlock != 0, "Request does not exist");
-        require(block.number > requests[requests[msg.sender].expiryBlock], "Must be after expiryBlock");
-        (msg.sender).call{value: requests[msg.sender].value}("");
+        require(uint64(block.number) > requests[msg.sender].expiryBlock, "Must be after expiryBlock");
+        (bool success,) = (msg.sender).call{value: requests[msg.sender].value}("");
+        require(success, "Low level transfer error");
     }
 }
