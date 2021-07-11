@@ -1,4 +1,4 @@
-const { assert } = require("chai");
+const { assert, expect } = require("chai");
 const { ethers } = require("hardhat");
 
 const START_BLOCK = 10;
@@ -11,7 +11,7 @@ describe("RequestForReorg", function () {
   let requesterSigner;
   let requester;
 
-  before(async () => {
+  beforeEach(async () => {
     [requesterSigner] = await ethers.getSigners();
     requester = requesterSigner.address;
     const RFR = await ethers.getContractFactory(
@@ -54,5 +54,24 @@ describe("RequestForReorg", function () {
       assert.equal(expiryBlock, currentMinus5);
       assert.equal(reward.toString(), requestReward.toString());
     });
+
+    it("fails if request is created with an execution block at current block number", async () => {
+      const currentBlock = await provider.getBlockNumber();
+      const nextBlock = currentBlock + 1;
+      await expect(rfr.request(nextBlock, currentBlock)).to.be.revertedWith("executeBlock must be in the past");
+
+      // prove that `nextBlock` was the block at `request` execution time
+      expect(nextBlock).to.equal(await provider.getBlockNumber());
+    });
+
+    it("fails if request is created with an execution block in the future", async () => {
+      const currentBlock = await provider.getBlockNumber();
+      const nextBlock = currentBlock + 2;
+      await expect(rfr.request(nextBlock, currentBlock)).to.be.revertedWith("executeBlock must be in the past");
+
+      // prove that `nextBlock` was a future block, at `request` execution time
+      expect(nextBlock).to.equal((await provider.getBlockNumber()) + 1);
+    });
+
   });
 });
