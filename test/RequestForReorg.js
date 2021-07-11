@@ -50,8 +50,8 @@ describe("RequestForReorg", function () {
         await rfr.requests(requester);
 
       assert.equal(claimant, ethers.constants.AddressZero);
-      assert.equal(executeBlock.toNumber(), currentMinus10);
-      assert.equal(expiryBlock.toNumber(), currentMinus5);
+      assert.equal(executeBlock, currentMinus10);
+      assert.equal(expiryBlock, currentMinus5);
       assert.equal(reward.toString(), requestReward.toString());
     });
   });
