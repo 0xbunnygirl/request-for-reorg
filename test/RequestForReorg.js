@@ -36,7 +36,7 @@ describe("RequestForReorg", function () {
   });
 
   describe("request", () => {
-    it("creates a request", async () => {
+    it("creates a request with executeBlock in the past", async () => {
       const currentBlock = await provider.getBlockNumber();
       const currentMinus10 = currentBlock - 10;
       const currentMinus5 = currentBlock - 5;
@@ -55,23 +55,27 @@ describe("RequestForReorg", function () {
       assert.equal(reward.toString(), requestReward.toString());
     });
 
-    it("fails if request is created with an execution block at current block number", async () => {
+    it("creates a request with executeBlock right now", async () => {
       const currentBlock = await provider.getBlockNumber();
       const nextBlock = currentBlock + 1;
-      await expect(rfr.request(nextBlock, currentBlock)).to.be.revertedWith("executeBlock must be in the past");
+      const nextNextBlock = nextBlock + 1;
 
-      // prove that `nextBlock` was the block at `request` execution time
-      expect(nextBlock).to.equal(await provider.getBlockNumber());
+      await rfr.request(nextBlock, nextNextBlock);
+
+      const { claimant, executeBlock, expiryBlock, reward } = await rfr.requests(requester);
+      expect(claimant).to.equal(ethers.constants.AddressZero);
+      expect(executeBlock).to.equal(nextBlock);
+      expect(expiryBlock).to.equal(nextNextBlock);
+      expect(reward).to.eq(0);
     });
 
     it("fails if request is created with an execution block in the future", async () => {
       const currentBlock = await provider.getBlockNumber();
       const nextBlock = currentBlock + 2;
-      await expect(rfr.request(nextBlock, currentBlock)).to.be.revertedWith("executeBlock must be in the past");
+      await expect(rfr.request(nextBlock, currentBlock)).to.be.revertedWith("executeBlock must be now, or in the past");
 
       // prove that `nextBlock` was a future block, at `request` execution time
       expect(nextBlock).to.equal((await provider.getBlockNumber()) + 1);
     });
-
   });
 });
