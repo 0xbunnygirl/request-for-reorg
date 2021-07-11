@@ -49,7 +49,7 @@ contract RequestForReorg {
     /// @notice Claiming the reward at the end of expiry
     /// @param requester is the address at which the Request object is attached to
     function claimReward(address requester)  external {
-        require(requests[requester].expiryBlock > block.timestamp, "Must be after expiryBlock");
+        require(requests[requester].expiryBlock > block.number, "Must be after expiryBlock");
         require(requests[requester].claimant == msg.sender, "Must match claimant");
 
         uint reward = requests[requester].reward;
@@ -62,7 +62,7 @@ contract RequestForReorg {
     /// @notice Forfeits the reward for the miner due to some violation of trust. Reward remains stuck on the contract.
     function slash() external {
         require(requests[msg.sender].expiryBlock != 0, "Request does not exist");
-        require(block.timestamp < requests[msg.sender].expiryBlock, "Must be before expiryBlock");
+        require(block.number < requests[msg.sender].expiryBlock, "Must be before expiryBlock");
         require(requests[msg.sender].claimant != address(0), "Must be claimed");
 
         delete requests[msg.sender];
