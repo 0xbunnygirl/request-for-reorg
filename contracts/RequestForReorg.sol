@@ -16,6 +16,12 @@ contract RequestForReorg {
     /// @notice Maps the requester to a Request object. A single address can only make a single request.
     mapping(address => Request) public requests;
 
+    event Requested(address indexed requester, uint48 executeBlock, uint48 expiryBlock, uint128 reward);
+    event Reorged(address indexed requester, address indexed reorger);
+    event RewardClaimed(address indexed requester);
+    event Slashed(address indexed requester);
+    event Withdrawn(address indexed requester);
+
     /// @notice Creates a request to reorg the blockchain
     /// @param executeBlock is the block at which the reorg function has to be called
     /// @param expiryBlock is the block at which the request expires
@@ -32,6 +38,8 @@ contract RequestForReorg {
             expiryBlock: expiryBlock,
             reward: uint128(msg.value)
         });
+
+        emit Requested(msg.sender, executeBlock, expiryBlock, uint128(msg.value));
     }
 
     /// @notice Reorg that apportions the reward to a miner but does not transfer it until expiry
@@ -44,6 +52,8 @@ contract RequestForReorg {
 
         // Updating the claim information
         requests[requester].claimant = msg.sender;
+
+        emit Reorged(requester, msg.sender);
     }
 
     /// @notice Claiming the reward at the end of expiry
@@ -57,6 +67,8 @@ contract RequestForReorg {
 
         (bool success,) = (msg.sender).call{value: reward}("");
         require(success, "Low level transfer error");
+
+        emit RewardClaimed(requester);
     }
 
     /// @notice Forfeits the reward for the miner due to some violation of trust. Reward remains stuck on the contract.
@@ -66,6 +78,8 @@ contract RequestForReorg {
         require(requests[msg.sender].claimant != address(0), "Must be claimed");
 
         delete requests[msg.sender];
+
+        emit Slashed(msg.sender);
     }
 
     /// @notice Withdraws the reward amount if no miners claim the reward by reorg-ing
@@ -80,5 +94,7 @@ contract RequestForReorg {
         // Withdrawing the original reward amount
         (bool success,) = (msg.sender).call{value: reward}("");
         require(success, "Low level transfer error");
+
+        emit Withdrawn(msg.sender);
     }
 }
